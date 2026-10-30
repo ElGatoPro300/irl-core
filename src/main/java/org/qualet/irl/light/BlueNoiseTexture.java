@@ -1,6 +1,7 @@
 package org.qualet.irl.light;
 
-import com.mojang.blaze3d.platform.GlStateManager;
+import org.qualet.irl.platform.NativeGl;
+
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
@@ -81,8 +82,8 @@ public final class BlueNoiseTexture
         {
             pixels.put(raw).flip();
 
-            texId = GlStateManager._genTexture();
-            GlStateManager._bindTexture(texId);
+            texId = NativeGl._genTexture();
+            NativeGl._bindTexture(texId);
             GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL30.GL_R8, RES, RES, 0,
                 GL11.GL_RED, GL11.GL_UNSIGNED_BYTE, pixels);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
@@ -95,7 +96,7 @@ public final class BlueNoiseTexture
             MemoryUtil.memFree(pixels);
         }
 
-        GlStateManager._bindTexture(prevTex);
+        NativeGl._bindTexture(prevTex);
         GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, prevPbo);
         GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, prevAlign);
         GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, prevRowLen);
@@ -135,7 +136,7 @@ public final class BlueNoiseTexture
     {
         if (texId != 0)
         {
-            GlStateManager._deleteTexture(texId);
+            NativeGl._deleteTexture(texId);
             texId = 0;
         }
         attempted = false;

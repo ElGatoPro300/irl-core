@@ -1,6 +1,7 @@
 package org.qualet.irl.light.shadow;
 
-import com.mojang.blaze3d.platform.GlStateManager;
+import org.qualet.irl.platform.NativeGl;
+
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL14;
@@ -286,8 +287,8 @@ final class DepthTileAtlas
         int prevTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         int prevFbo = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
-        int textureId = GlStateManager._genTexture();
-        GlStateManager._bindTexture(textureId);
+        int textureId = NativeGl._genTexture();
+        NativeGl._bindTexture(textureId);
 
         GL11.glTexImage2D(
             GL11.GL_TEXTURE_2D, 0, GL30.GL_DEPTH_COMPONENT32F,
@@ -304,7 +305,7 @@ final class DepthTileAtlas
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL14.GL_TEXTURE_COMPARE_MODE, GL11.GL_NONE);
 
         int fboId = GL30.glGenFramebuffers();
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, fboId);
+        NativeGl._glBindFramebuffer(GL30.GL_FRAMEBUFFER, fboId);
         GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, textureId, 0);
         GL11.glDrawBuffer(GL11.GL_NONE);
         GL11.glReadBuffer(GL11.GL_NONE);
@@ -322,8 +323,8 @@ final class DepthTileAtlas
         GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
         GL11.glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, prevFbo);
-        GlStateManager._bindTexture(prevTex);
+        NativeGl._glBindFramebuffer(GL30.GL_FRAMEBUFFER, prevFbo);
+        NativeGl._bindTexture(prevTex);
 
         return new int[] { textureId, fboId };
     }
@@ -355,16 +356,16 @@ final class DepthTileAtlas
         // skips a future bind when the driver reuses the name.
         if (this.initialized)
         {
-            GlStateManager._deleteTexture(this.glTextureId);
-            GL30.glDeleteFramebuffers(this.glFboId);
+            NativeGl._deleteTexture(this.glTextureId);
+            NativeGl._glDeleteFramebuffers(this.glFboId);
             this.glTextureId = 0;
             this.glFboId = 0;
             this.initialized = false;
         }
         if (this.staticInitialized)
         {
-            GlStateManager._deleteTexture(this.staticTextureId);
-            GL30.glDeleteFramebuffers(this.staticFboId);
+            NativeGl._deleteTexture(this.staticTextureId);
+            NativeGl._glDeleteFramebuffers(this.staticFboId);
             this.staticTextureId = 0;
             this.staticFboId = 0;
             this.staticInitialized = false;

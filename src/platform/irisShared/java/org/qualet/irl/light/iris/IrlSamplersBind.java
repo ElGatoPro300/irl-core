@@ -1,10 +1,11 @@
 package org.qualet.irl.light.iris;
 
+import org.qualet.irl.light.IrlSamplers;
+
 import net.irisshaders.iris.gl.IrisRenderSystem;
 import net.irisshaders.iris.gl.program.ProgramSamplers;
-import org.lwjgl.opengl.GL11;
 
-import org.qualet.irl.light.IrlSamplers;
+import org.lwjgl.opengl.GL11;
 
 /**
  * Iris glue for {@link IrlSamplers}: adds every registered IRLite shadow texture
@@ -28,7 +29,7 @@ public final class IrlSamplersBind
      */
     public static void bindAll(ProgramSamplers.Builder builder)
     {
-        IrlSamplers.forEach((name, glId, glTarget) -> builder.addDynamicSampler(glId, name));
+        NativeSamplers.register(builder);
     }
 
     /**

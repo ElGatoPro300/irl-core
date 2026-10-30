@@ -1,0 +1,10 @@
+import groovy.json.JsonSlurper
+
+def targets = new JsonSlurper().parse(file('gradle/minecraft-targets.json'))
+def selected = providers.gradleProperty('mc').getOrElse(project.minecraft_version)
+def target = targets[selected]
+if (target == null) throw new GradleException("Unsupported Minecraft target: ${selected}")
+ext.minecraft_version = selected
+ext.minecraftTarget = target
+layout.buildDirectory = file("build/targets/${selected}")
+ext.set('fabric.loom.runtimeJavaCompatibilityVersion', target.java.toString())

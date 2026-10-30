@@ -1,0 +1,19 @@
+/* Official sources are rewritten by symbol from the named 1.21.11 project. */
+def generated = file('build/source-bridge/official')
+def prepare = tasks.register('prepareOfficialSources', Exec) {
+    inputs.files(fileTree('src') { include '**/*.java' })
+    inputs.files(fileTree('tools/source_bridge'), fileTree('gradle/source-bridge') { include '*.gradle', 'gradle.properties' })
+    outputs.dir generated
+    commandLine file(System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? 'gradlew.bat' : 'gradlew'),
+        '-p', file('gradle/source-bridge'), 'prepareOfficialSources', '--console=plain'
+}
+sourceSets.main.java.setSrcDirs([
+    new File(generated, 'common'), new File(generated, 'backend'),
+    file('src/platform/official/java'), file('src/platform/irisShared/java'),
+    file('src/platform/irisModern/java'),
+    file('src/platform/' + (minecraft_version == '26.1' ? 'camera261' : 'camera262') + '/java'),
+    file('src/platform/' + (minecraft_version == '26.3' ? 'empty' : 'atlas261') + '/java'),
+    file('src/platform/' + (minecraft_version == '26.3' ? 'gl263' : 'glModern') + '/java')
+])
+tasks.withType(JavaCompile).configureEach { dependsOn prepare }
+tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn prepare }

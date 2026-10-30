@@ -1,6 +1,7 @@
 package org.qualet.irl.light.shadow;
 
-import com.mojang.blaze3d.platform.GlStateManager;
+import org.qualet.irl.platform.NativeGl;
+
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
@@ -302,13 +303,13 @@ public final class PointShadowEvsm
                 }
                 int local = b - start;
                 // convert: depth atlas -> linearized warped moments, lod 0, all 6 faces
-                GlStateManager._glUseProgram(progConvert);
+                NativeGl._glUseProgram(progConvert);
                 GL20.glUniform1i(uCvSrc, unit);
                 GL20.glUniform1f(uCvFar, blockFar[b]);
                 GL20.glUniform1i(uCvSlot, local);
                 GL20.glUniform2i(uCvDstSize, base, base);
                 GL20.glUniform2i(uCvBlockOrigin, PointDepthAtlas.blockPixelX(b), PointDepthAtlas.blockPixelY(b));
-                GlStateManager._bindTexture(depthTex);
+                NativeGl._bindTexture(depthTex);
                 GL42.glBindImageTexture(0, texId[t], 0, true, 0, GL15.GL_WRITE_ONLY, GL30.GL_RGBA32F);
                 GL43.glDispatchCompute(groups, groups, 6);
                 GL42.glMemoryBarrier(GL42.GL_TEXTURE_FETCH_BARRIER_BIT);
@@ -320,7 +321,7 @@ public final class PointShadowEvsm
             for (int lod = 1; lod < levels[t]; lod++)
             {
                 int dstW = base >> lod;
-                GlStateManager._glUseProgram(progMip);
+                NativeGl._glUseProgram(progMip);
                 GL20.glUniform1i(uMpSrc, unit);
                 GL20.glUniform1i(uMpSrcLod, lod - 1);
                 GL20.glUniform2i(uMpDstSize, dstW, dstW);
@@ -351,8 +352,8 @@ public final class PointShadowEvsm
         }
 
         GL11.glBindTexture(GL30.GL_TEXTURE_2D_ARRAY, prevArr);
-        GlStateManager._bindTexture(prevTex);
-        GlStateManager._glUseProgram(prevProgram);
+        NativeGl._bindTexture(prevTex);
+        NativeGl._glUseProgram(prevProgram);
         if (prevImgName == 0)
         {
             GL42.glBindImageTexture(0, 0, 0, false, 0, GL15.GL_READ_ONLY, GL30.GL_R32F);
@@ -368,7 +369,7 @@ public final class PointShadowEvsm
     private static void blurBlockLevel(int unit, int tier, int local, int lod, int w)
     {
         int groups = (w + 7) / 8;
-        GlStateManager._glUseProgram(progBlur);
+        NativeGl._glUseProgram(progBlur);
         GL20.glUniform1i(uBlSrc, unit);
         GL20.glUniform2i(uBlSize, w, w);
 
@@ -632,7 +633,7 @@ public final class PointShadowEvsm
     }
 
     /** Free the textures (called with PointDepthAtlas.delete()); raw delete is
-     *  safe — 2D-array/cube-array bindings are not tracked by GlStateManager. */
+     *  safe — 2D-array/cube-array bindings are not tracked by NativeGl. */
     public static void delete()
     {
         ShadowBaker.invalidateOverlays();

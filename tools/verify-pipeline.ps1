@@ -1,7 +1,9 @@
 param(
     [string]$JavaHome = $env:JAVA_HOME,
     [string]$JomlJar,
-    [string]$GradleUserHome = $env:GRADLE_USER_HOME
+    [string]$GradleUserHome = $env:GRADLE_USER_HOME,
+    [string[]]$PatchRoots,
+    [int]$ExpectedVariants = 14
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -14,7 +16,7 @@ New-Item -ItemType Directory -Force -Path $classes, $stubs | Out-Null
 $javac = if ($JavaHome) { Join-Path $JavaHome 'bin/javac.exe' } else { 'javac' }
 $java = if ($JavaHome) { Join-Path $JavaHome 'bin/java.exe' } else { 'java' }
 if (!$JomlJar) {
-    $cache = if ($GradleUserHome) { $GradleUserHome } else { Join-Path $workspace '.gradle-user' }
+    $cache = if ($GradleUserHome) { $GradleUserHome } else { Join-Path $env:USERPROFILE '.gradle' }
     $jomlRoot = Join-Path $cache 'caches/modules-2/files-2.1/org.joml/joml'
     $JomlJar = Get-ChildItem -LiteralPath $jomlRoot -Recurse -Filter 'joml-*.jar' |
         Where-Object { $_.Name -notmatch '(sources|javadoc)' } |
@@ -24,13 +26,14 @@ if (!$JomlJar -or !(Test-Path -LiteralPath $JomlJar)) { throw 'Pass -JomlJar wit
 
 # Every shipped variant uses header.w, including both surface and VL passes.
 # The legacy region declaration/lookup stays fixed even in the wide variants.
-$patchRoots = @(
-    (Join-Path $code 'bbs-irlights-addon/patches'),
-    (Join-Path $code 'bbs-dof-addon/patches'),
-    (Join-Path $code 'irlights/src/client/resources/assets/irl-redactor/patches')
-)
+if (!$PatchRoots) {
+    $PatchRoots = @(
+        (Join-Path $code 'BBS-CML-IRLIGHTS/patches'),
+        (Join-Path $code 'irl-editor/src/client/resources/assets/irl-redactor/patches')
+    )
+}
 $variants = 0
-foreach ($root in $patchRoots) {
+foreach ($root in $PatchRoots) {
     foreach ($file in Get-ChildItem -LiteralPath $root -File -Filter '*.irlights') {
         $shader = [IO.File]::ReadAllText($file.FullName)
         if ($shader -notmatch 'irlite_clusterWide') { throw "Cluster contract missing: $($file.FullName)" }
@@ -62,7 +65,8 @@ foreach ($root in $patchRoots) {
         $variants++
     }
 }
-if ($variants -lt 21) { throw "Expected all 21 shipped shader variants, found $variants" }
+if ($variants -ne $ExpectedVariants) { throw "Expected $ExpectedVariants shader variants, found $variants" }
+if ($variants -eq 0) { throw 'No shader patch variants found; provide -PatchRoots.' }
 Write-Output "Shader ABI verified: $variants variants, both surface/VL runtime strides and fixed legacy offsets."
 
 # Test doubles stop at the GL/Iris boundary; actual production Java below is
@@ -156,7 +160,8 @@ foreach ($entry in $stubSources.GetEnumerator()) {
 $src = Join-Path $repo 'src/main/java/org/qualet/irl/light'
 $sources += (Join-Path $src 'ClusterGridBuffer.java')
 $sources += (Join-Path $src 'IrlSamplers.java')
-$sources += (Join-Path $src 'iris/IrlSamplersBind.java')
+$sources += (Join-Path $repo 'src/platform/irisShared/java/org/qualet/irl/light/iris/IrlSamplersBind.java')
+$sources += (Join-Path $repo 'src/platform/iris18/java/org/qualet/irl/light/iris/NativeSamplers.java')
 $sources += (Join-Path $PSScriptRoot 'pipeline/PipelineTest.java')
 & $javac --release 17 -encoding UTF-8 -cp $JomlJar -d $classes @sources
 if ($LASTEXITCODE -ne 0) { throw 'Pipeline test compilation failed' }

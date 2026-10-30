@@ -1,5 +1,7 @@
 package org.qualet.irl.light;
 
+import org.qualet.irl.platform.NativeImageResize;
+
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
@@ -7,7 +9,6 @@ import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
-import org.lwjgl.stb.STBImageResize;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
@@ -75,7 +76,7 @@ public abstract class CookieArrayBase
             }
 
             ByteBuffer resized = MemoryUtil.memAlloc(RES * RES);
-            STBImageResize.stbir_resize_uint8(img, w.get(0), h.get(0), 0, resized, RES, RES, 0, 1);
+            NativeImageResize.grayscale(img, w.get(0), h.get(0), resized, RES);
             flipHorizontal(resized);   // see flipHorizontal: cancels the left-handed X of the spot projection so the gobo isn't mirrored
             return resized;
         }

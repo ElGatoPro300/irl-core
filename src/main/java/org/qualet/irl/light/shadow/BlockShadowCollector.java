@@ -2,10 +2,6 @@ package org.qualet.irl.light.shadow;
 
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.block.BlockModels;
-import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
@@ -107,8 +103,7 @@ public final class BlockShadowCollector
                     boolean cutout;
                     try
                     {
-                        RenderLayer layer = RenderLayers.getBlockLayer(state);
-                        cutout = layer == RenderLayer.getCutout() || layer == RenderLayer.getCutoutMipped();
+                        cutout = NativeShadowBlocks.isCutout(state, mut);
                     }
                     catch (Throwable t)
                     {
@@ -123,7 +118,7 @@ public final class BlockShadowCollector
                     VoxelShape shape;
                     try
                     {
-                        shape = state.getCullingShape(world, mut);
+                        shape = NativeShadowBlocks.shape(state, world, mut);
                         if (shape == null || shape.isEmpty())
                         {
                             shape = state.getCollisionShape(world, mut);
@@ -197,8 +192,7 @@ public final class BlockShadowCollector
                 // Cutout geometry is the baked model. States sharing one baked
                 // model instance (leaves distance=1 vs 2, fire ages) render
                 // identically; distinct instances may differ — assume they do.
-                BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
-                return models.getModel(oldState) == models.getModel(newState);
+                return NativeShadowBlocks.sameModel(oldState, newState);
             }
             VoxelShape a = shapeOut[0], b = shapeOut[1];
             // Most blocks serve shapes from per-state static caches (full cubes
@@ -223,8 +217,7 @@ public final class BlockShadowCollector
         }
         try
         {
-            RenderLayer layer = RenderLayers.getBlockLayer(state);
-            if (layer == RenderLayer.getCutout() || layer == RenderLayer.getCutoutMipped())
+            if (NativeShadowBlocks.isCutout(state, pos))
             {
                 return KIND_CUTOUT;
             }
@@ -233,7 +226,7 @@ public final class BlockShadowCollector
         {
             // collectForLight treats a throwing layer lookup as non-cutout too
         }
-        VoxelShape shape = state.getCullingShape(world, pos);
+        VoxelShape shape = NativeShadowBlocks.shape(state, world, pos);
         if (shape == null || shape.isEmpty())
         {
             shape = state.getCollisionShape(world, pos);

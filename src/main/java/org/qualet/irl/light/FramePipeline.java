@@ -1,11 +1,14 @@
 package org.qualet.irl.light;
 
+import org.qualet.irl.light.shadow.ShadowBaker;
+import org.qualet.irl.platform.NativeFrame;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.Vec3d;
+
 import org.joml.Matrix4f;
-import org.qualet.irl.light.shadow.ShadowBaker;
 
 import java.util.function.BooleanSupplier;
 
@@ -104,8 +107,8 @@ public final class FramePipeline
 
         MinecraftClient mc = MinecraftClient.getInstance();
         ClientWorld world = mc.world;
-        Camera camera = mc.gameRenderer.getCamera();
-        Vec3d cameraPos = camera != null ? camera.getPos() : Vec3d.ZERO;
+        Camera camera = NativeFrame.camera(mc);
+        Vec3d cameraPos = camera != null ? NativeFrame.position(camera) : Vec3d.ZERO;
         // Forward look vector for the shadow baker's behind-camera light cull.
         Vec3d cameraForward = camera != null ? Vec3d.fromPolar(camera.getPitch(), camera.getYaw()) : null;
 
@@ -122,7 +125,7 @@ public final class FramePipeline
         // rendering writes into our depth FBO).
         if (world != null && camera != null)
         {
-            mc.getEntityRenderDispatcher().configure(world, camera, mc.getCameraEntity());
+            NativeFrame.prepare(mc, world, camera);
         }
         ShadowBaker.bake(world, cameraPos, cameraForward, tickDelta);
 
@@ -156,8 +159,8 @@ public final class FramePipeline
         flushPending = false;
 
         MinecraftClient mc = MinecraftClient.getInstance();
-        Camera camera = mc.gameRenderer.getCamera();
-        Vec3d p = camera != null ? camera.getPos() : Vec3d.ZERO;
+        Camera camera = NativeFrame.camera(mc);
+        Vec3d p = camera != null ? NativeFrame.position(camera) : Vec3d.ZERO;
         LightRegistry.flush(p.x, p.y, p.z);
     }
 

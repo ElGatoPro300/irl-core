@@ -1,86 +1,37 @@
-<div align="center">
+# IRL Core
 
-# ✦ irl-core
+The shared engine behind IRLights and IRL-editor: light SSBOs and registry, shadow orchestration, GPU caches and the `.irlights` shaderpack patcher. Core has no BBS/CML dependency.
 
-**The BBS-free shared engine behind IRLights & IRL-editor**
+One source tree builds eight Minecraft targets: **1.20.1, 1.20.4, 1.21.1, 1.21.4, 1.21.11, 26.1, 26.2 and 26.3**. Version-specific native calls live in `src/platform`; shared algorithms live in `src/main/java`.
 
-*A Fabric/Loom module (per-version MC-typed) that holds the light SSBO pipeline, shadow orchestration, and the `.irlights` shaderpack patcher. Built as Java&nbsp;17 for MC&nbsp;1.20.4; remapped to intermediary and bundled by both consumers (IRLights & IRL-editor).*
+## Build
 
-[![Java](https://img.shields.io/badge/Java-17-f89820?style=flat-square&logo=openjdk&logoColor=white)](https://adoptium.net)
-[![License](https://img.shields.io/badge/License-MIT-3da639?style=flat-square)](LICENSE)
-[![Status](https://img.shields.io/badge/built%20with-Loom%201.9-4060ff?style=flat-square)](#)
+Use JDK 25 to run the complete matrix:
 
-</div>
-
----
-
-## What is irl-core?
-
-`irl-core` is the common heart of two sibling mods:
-
-- **[IRLights](https://github.com/quaIett/bbs-irlights-addon)** — a BBS Mod Studio add-on
-- **[IRL-editor](https://github.com/quaIett/irl-editor)** — a standalone ImGui light editor
-
-It bundles the GPU light buffer, shadow orchestration (MC-typed), and the shaderpack patcher. Built with Loom 1.9 (the oldest consumer's version; consumers reject newer Loom jars) and remapped to intermediary format. Because intermediary names are MC-version–specific, this artifact pairs exclusively with MC&nbsp;1.20.4 consumers; the name mappings are re-targeted by each mod's Loom at build time (addon uses `-Pmc=1.20.4`, editor uses native 1.20.4).
-
----
-
-## What's inside
-
-| Subsystem | Package | What it does |
-|---|---|---|
-| **Light pipeline** | `org.qualet.irl.light` | `LightBuffer` — std430 SSBO at **binding 7**, up to **2048 lights/frame**; `LightRegistry` — collects & uploads light data to the GPU |
-| **Patcher engine** | `org.qualet.irl.patcher` | Parses & applies anchor-based `.irlights` patch files into shaderpacks (`IrlPatchParser`, `IrlPatchApplier`, `PatchEngine`, `PatchLibrary`, `Shaderpacks`, `Patcher`, `PatcherHost`) |
-
-The patcher is **validate-first**: it aggregates every error before touching a file, is EOL-tolerant, works straight on zipped packs, and supports dry-run + rollback.
-
----
-
-## How it's consumed
-
-The core publishes a remapped (intermediary) jar to the local Maven repository. Each consumer builds it first:
-
-```bash
-./gradlew publishToMavenLocal
+```powershell
+./gradlew.bat buildAll
 ```
 
-Then both mods pull `irl-core` from mavenLocal and bundle it into their jar with Loom's `include` (JiJ):
+All eight installable JARs appear in `build/libs/`. Intermediate outputs stay in `build/targets/<mc>/`. A normal `build` targets 1.21.1; select another target explicitly:
 
-```groovy
-// build.gradle (each mod)
-dependencies {
-    modClientImplementation("org.qualet:irl-core:${irl_core_version}") // Loom remaps intermediary → named
-    include("org.qualet:irl-core:${irl_core_version}")
-}
+```powershell
+./gradlew.bat build '-Pmc=1.21.4'
+./gradlew.bat publishToMavenLocal '-Pmc=1.21.4'
 ```
 
-The version is read from `gradle.properties` (currently `1.1`). Environment-specific bindings (game directory, Iris API, "open folder") stay in each mod via a `PatcherHost` implementation — `irl-core` stays pure.
+Java bytecode follows the selected Minecraft target: Java 17 for 1.20.x, Java 21 for 1.21.x, Java 25 for 26.x. Every JAR is restricted to its exact Minecraft version and has a unique version suffix, for example `1.1.9-1.21.4`.
 
----
+## Consumption
 
-## Building
+IRLights can consume the matching release JAR through its local `lib/<mc>` dependency directory. Update its selected Core version when adopting a new release. Maven consumers use `org.qualet:irl-core:1.1.9-<mc>` and bundle the matching artifact through Loom `include`. Yarn targets publish intermediary artifacts; 26.x targets publish official names.
 
-```bash
-./gradlew build
-# output: build/libs/irl-core-1.1.jar (+ sources jar)
-./gradlew publishToMavenLocal
-# publishes remapped jar to ~/.m2/repository/org/qualet/irl-core/1.1/
-```
+Environment bindings stay in the host through `PatcherHost`, `ShadowConfig` and `ShadowCasterSource`. The shader patcher validates before writing, supports zipped packs, dry-run and rollback. The registry retains its std430 buffer layout, binding 7 and maximum 2048 lights per frame.
 
-Requires a JDK 17+. Compiles with `--release 17`; the resulting (remapped) bytecode runs unchanged when consumers re-target it to their own named mappings (addon → 1.20.4 with Loom 1.15.5, editor → 1.20.4 with Loom 1.9).
+See [multiversion architecture and validation](docs/multiversion.md) for adapter boundaries, commands and the remaining world-render acceptance checks.
 
----
+## Related projects
 
-## The trilogy
+- [IRLights addon](https://github.com/quaIett/bbs-irlights-addon)
+- [IRL-editor](https://github.com/quaIett/irl-editor)
 
-| Repo | Role |
-|---|---|
-| **irl-core** *(this repo)* | Shared engine: light SSBO + `.irlights` patcher |
-| [bbs-irlights-addon](https://github.com/quaIett/bbs-irlights-addon) | IRLights — BBS Mod Studio add-on |
-| [irl-editor](https://github.com/quaIett/irl-editor) | IRL-editor — standalone ImGui editor |
-
----
-
-## License
-
-Released under the [MIT License](LICENSE) — © 2026 qualet.
+Released under the [MIT License](LICENSE). Copyright 2026 qualet.

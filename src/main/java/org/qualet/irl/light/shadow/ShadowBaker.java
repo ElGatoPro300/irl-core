@@ -1,17 +1,20 @@
 package org.qualet.irl.light.shadow;
 
+import org.qualet.irl.light.LightRegistry;
+
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
+
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import org.joml.Matrix4f;
-import org.joml.Vector4f;
-import org.qualet.irl.light.LightRegistry;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -1913,6 +1916,7 @@ public final class ShadowBaker
         liveIds.clear();
         BlockShadowCache.retainOnly(liveIds);
         ShadowRenderer.retainBlockVbos(liveIds);
+        ShadowRenderer.releaseScratch();
         SpotlightDepthAtlas.delete();
         PointDepthAtlas.delete();
     }

@@ -1,0 +1,64 @@
+import groovy.json.JsonSlurper
+import org.cadixdev.lorenz.MappingSet
+import org.cadixdev.mercury.Mercury
+import org.cadixdev.mercury.remapper.MercuryRemapper
+
+plugins { id 'fabric-loom' version '1.17.21' }
+def core = file('../..')
+def spec = new JsonSlurper().parse(new File(core, 'gradle/minecraft-targets.json'))['1.21.11']
+repositories {
+    maven { url = 'https://api.modrinth.com/maven' }
+    mavenCentral()
+}
+sourceSets.main.java.setSrcDirs(['src/main/java', 'src/platform/modern/java',
+    'src/platform/mc12111/java', 'src/platform/glModern/java',
+    'src/platform/irisShared/java', 'src/platform/irisModern/java'].collect { new File(core, it) })
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21.11'
+    mappings 'net.fabricmc:yarn:1.21.11+build.6:v2'
+    modImplementation "net.fabricmc:fabric-loader:${spec.loader}"
+    modCompileOnly "maven.modrinth:iris:${spec.iris}"
+    compileOnly 'org.slf4j:slf4j-api:2.0.9'
+}
+tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
+def generated = new File(core, 'build/source-bridge/official')
+def symbols = new File(core, 'build/source-bridge/symbols.json')
+def groups = [common: new File(core, 'src/main/java'), backend: new File(core, 'src/platform/modern/java')]
+tasks.register('prepareOfficialSources') {
+    dependsOn tasks.named('compileJava')
+    inputs.files(sourceSets.main.allJava, new File(core, 'tools/source_bridge/mappings.py'))
+    outputs.dir generated
+    doLast {
+        providers.exec {
+            commandLine 'python', new File(core, 'tools/source_bridge/mappings.py').absolutePath,
+                '--cache', new File(gradle.gradleUserHomeDir, 'caches/fabric-loom').absolutePath,
+                '--output', symbols.absolutePath
+        }.result.get().assertNormalExitValue()
+        def mapping = MappingSet.create()
+        new JsonSlurper().parse(symbols).each { entry ->
+            def owner = mapping.getOrCreateClassMapping(entry.source)
+            owner.setDeobfuscatedName(entry.target)
+            entry.methods.each { method ->
+                owner.getOrCreateMethodMapping(method.source, method.descriptor).setDeobfuscatedName(method.target)
+            }
+            entry.fields.each { field ->
+                owner.getOrCreateFieldMapping(field.source, field.descriptor).setDeobfuscatedName(field.target)
+            }
+        }
+        groups.each { name, input ->
+            def output = new File(generated, name).canonicalFile
+            if (!output.toPath().startsWith(generated.canonicalFile.toPath()) || output == generated.canonicalFile) {
+                throw new GradleException("Unsafe generated source path: ${output}")
+            }
+            delete output
+            def mercury = new Mercury()
+            mercury.setSourceCompatibilityFromRelease(21)
+            mercury.setEncoding(java.nio.charset.StandardCharsets.UTF_8)
+            mercury.classPath.addAll((sourceSets.main.compileClasspath + sourceSets.main.output).files.findAll { it.exists() }.collect { it.toPath() })
+            mercury.sourcePath.addAll(sourceSets.main.java.srcDirs.collect { it.toPath() })
+            mercury.processors.add(MercuryRemapper.create(mapping))
+            mercury.rewrite(input.toPath(), output.toPath())
+            logger.lifecycle("Remapped ${name} core sources by symbol")
+        }
+    }
+}

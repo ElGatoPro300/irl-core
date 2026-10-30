@@ -1,0 +1,35 @@
+sourceSets {
+    smoke {
+        java.srcDir file("build/validation/${minecraft_version}/sources")
+        resources.srcDir file("build/validation/${minecraft_version}/resources")
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+def scope = minecraft_version.startsWith('26.') ? 'implementation' : 'modImplementation'
+dependencies {
+    add(scope, "net.fabricmc.fabric-api:fabric-api:${minecraftTarget.fabric}")
+    if (providers.gradleProperty('coreSmokeIris').getOrElse('true').toBoolean()) {
+        add(scope, "maven.modrinth:sodium:${minecraftTarget.sodium}")
+        add(scope, "maven.modrinth:iris:${minecraftTarget.iris}")
+    }
+}
+loom {
+    mods { irl_core_smoke { sourceSet sourceSets.smoke } }
+    runs {
+        client {
+            runDir file("build/validation/${minecraft_version}/client").absolutePath
+        }
+    }
+}
+sourceSets.main.runtimeClasspath += sourceSets.smoke.output
+
+tasks.named('runClient') { dependsOn tasks.named('smokeClasses') }
+def runtimes = new Properties()
+def runtimeFile = file('gradle/local-runtime.properties')
+if (runtimeFile.isFile()) runtimeFile.withInputStream { runtimes.load(it) }
+def runtimeHome = providers.gradleProperty('runJavaHome').orNull ?: runtimes.getProperty('runJavaHome.' + minecraft_version)
+if (runtimeHome == null) throw new GradleException('Smoke clients require -PrunJavaHome=<matching Java runtime> or gradle/local-runtime.properties')
+tasks.withType(JavaExec).configureEach {
+    executable = new File(runtimeHome, 'bin/java' + (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? '.exe' : ''))
+}

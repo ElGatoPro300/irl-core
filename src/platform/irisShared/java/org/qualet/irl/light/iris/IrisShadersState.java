@@ -22,7 +22,8 @@ public final class IrisShadersState
     private static boolean broken;
 
     private IrisShadersState()
-    {}
+    {
+    }
 
     /** True only when Iris positively reports the vanilla (no shaderpack) pipeline. */
     public static boolean shadersDisabled()

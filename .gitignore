@@ -9,3 +9,12 @@
 /memory/
 /.claude/
 /CLAUDE.md
+
+# Per-machine development runtimes
+/gradle/local-runtime.properties
+/run/
+
+# Isolated namespace bridge outputs
+/gradle/source-bridge/.gradle/
+/gradle/source-bridge/build/
+**/__pycache__/
